@@ -18,7 +18,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
       </Head>
       <div className="container mx-auto flex items-start">
         <SideNav />
-        <div className="min-h-screen flex-grow border-x">
+        <div className="min-h-screen flex-grow border-x border-slate-200">
           <Component {...pageProps} />
         </div>
       </div>
