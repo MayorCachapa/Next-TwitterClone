@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   createTRPCRouter,
   protectedProcedure,
+  publicProcedure,
 } from "~/server/api/trpc";
 
 export const tweetRouter = createTRPCRouter({
@@ -9,6 +10,54 @@ export const tweetRouter = createTRPCRouter({
   tRPC allows us to access backend functionality from the frontend, allowing a more seamless and productive communication between
   the two
   */
+ 
+ // The code below allows us to fetch a list of tweets, limited by a number of tweets
+ infiniteFeed: publicProcedure.input(z.object({
+   limit: z.number().optional(),
+   cursor: z.object({ id: z.string(), createdAt: z.date() }).optional()
+  })).query( async ({ input: { limit = 10, cursor }, ctx}) => {
+    
+    const currentUserId = ctx.session?.user.id
+
+    const tweets = await ctx.prisma.tweet.findMany({
+      take: limit + 1,
+      cursor: cursor ? { createdAt_id: cursor } : undefined,
+      orderBy: [{ createdAt: "desc" }, { id: "desc"}],
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        _count: { select: { likes: true }},
+        likes: currentUserId == undefined ? false : { where: {userId: currentUserId }},
+        user: {
+          select: { name: true, id: true, image: true }
+        }
+      }
+    })
+
+    let nextCursor: typeof cursor | undefined;
+
+    if (tweets.length > limit) {
+      const nextItem = tweets.pop()
+      if (nextItem !== null) {
+        nextCursor = { id: nextItem.id, createdAt: nextItem.createdAt }
+      }
+    }
+
+    return { tweets: tweets.map(tweet => {
+      return {
+        id: tweet.id,
+        content: tweet.content,
+        createdAt: tweet.createdAt,
+        likeCount: tweet._count.likes,
+        user: tweet.user,
+        likedByMe: tweet.likes?.length > 0,
+
+      }
+    }), nextCursor }
+  }),
+
+  // The code below allows us to create tweets
   create: protectedProcedure
   .input(z.object({ content: z.string() }))
   .mutation(async ({input: {content}, ctx}) => {
