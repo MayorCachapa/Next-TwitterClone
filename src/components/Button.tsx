@@ -1,9 +1,9 @@
 import React from 'react'
 
 type ButtonProps = {
-    small: boolean
+    small?: boolean
     gray?: boolean
-    className: string
+    className?: string
 } & React.DetailedHTMLProps <React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>;
 
 export default function Button({ small = false, gray = false, className = '', ...props}: ButtonProps) {
